@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0B132B">
+  <meta name="description" content="SomaEnergy — инструмент самостоятельной соматической регуляции">
+  <title>SomaEnergy</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <span class="logo">SomaEnergy</span>
+      <div class="header-actions">
+        <button type="button" class="guide-btn" id="btn-guide" aria-label="Гид">📖 Гид</button>
+        <button type="button" class="icon-btn" id="btn-about" aria-label="О приложении">ⓘ</button>
+      </div>
+    </header>
+
+    <main id="view-intro" class="view" hidden>
+      <h1 class="intro-title">SomaEnergy — короткие восстановительные микро-ретриты в течение рабочего дня</h1>
+
+      <section class="intro-block">
+        <h2>Назначение и безопасность</h2>
+        <p>Приложение помогает снизить моментное психофизическое напряжение, сбросить мышечный панцирь и вернуть ясность ума за 30–90 секунд прямо на рабочем месте. Это инструмент саморегуляции и работы над собой. Он не заменяет врача или психотерапию в критических состояниях.</p>
+      </section>
+
+      <section class="intro-privacy" aria-label="Защита приватности">
+        <p><span aria-hidden="true">🔒</span> 100% приватно: приложение работает полностью автономно на твоем ноутбуке или смартфоне. Все оценки состояния и заметки сохраняются исключительно в памяти твоего браузера (localStorage) и никуда не передаются.</p>
+      </section>
+
+      <section class="intro-block">
+        <h2>Как это действует и как часто применять</h2>
+        <ul class="intro-practices">
+          <li><strong>Перегруз / зажим (30 сек)</strong> — включает парасимпатическую нервную систему через двойной физиологический вздох и снятие зажимов. Когда делать: сразу после сложного звонка, конфликта или чтения жесткого письма (4–6 раз в день).</li>
+          <li><strong>Тревога / шум в голове (90 сек)</strong> — снимает спазм глазодвигательных мышц и переключает мозг из туннельной суеты в широкое присутствие. Когда делать: каждые 1.5–2 часа работы за монитором.</li>
+          <li><strong>Ступор / не могу начать (15 мин)</strong> — снижает страх перед сложной задачей за счет легализации неидеального черновика. Когда делать: 1–2 раза в день при прокрастинации.</li>
+        </ul>
+      </section>
+
+      <section class="intro-block">
+        <h2>Главный принцип — безоценочность</h2>
+        <p>Что значит наблюдать безоценочно: во время микро-практики не вовлекайся в оценки &quot;хорошо / плохо&quot;, &quot;легко / тяжело&quot;, &quot;напряжено / расслаблено&quot;. Не пытайся насильно заставить себя расслабиться. Если при сканировании тела ты заметил зажим — мягко отпусти его с выдохом. Если ты ничего не почувствовал или напряжение осталось — это абсолютно нормально, не ищи ощущения специально и просто продолжай упражнение до финального звука.</p>
+      </section>
+
+      <div class="intro-cta">
+        <label class="toggle intro-skip">
+          <input type="checkbox" id="skip-intro" checked>
+          <span>Сделать страницу с упражнениями первой по умолчанию (не показывать это описание при входе)</span>
+        </label>
+        <button type="button" class="btn-primary" id="btn-intro-continue">Перейти к упражнениям →</button>
+      </div>
+    </main>
+
+    <main id="view-now" class="view">
+      <p class="datetime" id="datetime" aria-live="polite"></p>
+      <h1 class="screen-title">Что сейчас мешает?</h1>
+      <div class="cards">
+        <button type="button" class="card" data-practice="reset30">
+          <span class="card-icon" aria-hidden="true">🌀</span>
+          <span class="card-body">
+            <span class="card-title">Перегруз / зажим</span>
+            <span class="card-sub">Сжаты плечи, челюсть, спина, трудно дышать</span>
+          </span>
+          <span class="badge">30 сек.</span>
+        </button>
+        <button type="button" class="card" data-practice="pause90">
+          <span class="card-icon" aria-hidden="true">🌫</span>
+          <span class="card-body">
+            <span class="card-title">Тревога / шум в голове</span>
+            <span class="card-sub">Мысли скачут, не могу сосредоточиться</span>
+          </span>
+          <span class="badge">90 сек.</span>
+        </button>
+        <button type="button" class="card" data-practice="draft15">
+          <span class="card-icon" aria-hidden="true">🧊</span>
+          <span class="card-body">
+            <span class="card-title">Ступор / не могу начать</span>
+            <span class="card-sub">Задача есть, но я застреваю</span>
+          </span>
+          <span class="badge">15 мин.</span>
+        </button>
+      </div>
+      <footer class="main-footer">
+        Перерыв — это техобслуживание мозга, а не лень. Инструмент самостоятельной регуляции. Не заменяет врача.
+        <p class="privacy-line">🔒 Все данные и заметки остаются только на вашем устройстве.</p>
+      </footer>
+    </main>
+
+    <main id="view-dynamics" class="view" hidden>
+      <div class="summary" id="summary">
+        <p id="summary-week"></p>
+        <p id="summary-avg"></p>
+      </div>
+      <ul class="session-list" id="session-list"></ul>
+      <p class="empty-state" id="empty-state" hidden>
+        Пока нет записей. Начни с одной практики — даже 30 секунд считаются.
+      </p>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Основная навигация">
+      <button type="button" class="nav-item nav-active" data-tab="now">Сейчас</button>
+      <button type="button" class="nav-item" data-tab="dynamics">Динамика</button>
+    </nav>
+  </div>
+
+  <div id="overlay" class="overlay" hidden>
+    <div class="overlay-inner">
+      <button type="button" class="overlay-close" id="overlay-stop-top" aria-label="Стоп">✕</button>
+
+      <section id="phase-pre" class="phase">
+        <h2 class="practice-title" id="pre-title"></h2>
+        <p class="practice-sub" id="pre-sub"></p>
+
+        <div id="draft-task-block" class="draft-task-block" hidden>
+          <label for="micro-task">Что набросаю за 15 минут?</label>
+          <input type="text" id="micro-task" maxlength="200" placeholder="например: 3 тезиса для письма руководителю" autocomplete="off">
+        </div>
+
+        <details class="practice-howto" id="practice-howto">
+          <summary>Как выполнять и что значат звуковые сигналы</summary>
+          <div class="practice-howto-body" id="practice-howto-body"></div>
+        </details>
+
+        <p class="stress-label">Напряжение сейчас:</p>
+        <div class="stress-row" id="stress-before-row">
+          <button type="button" class="stress-btn" data-stress="1">1</button>
+          <button type="button" class="stress-btn" data-stress="2">2</button>
+          <button type="button" class="stress-btn" data-stress="3">3</button>
+          <button type="button" class="stress-btn" data-stress="4">4</button>
+          <button type="button" class="stress-btn" data-stress="5">5</button>
+        </div>
+        <button type="button" class="btn-secondary" id="start-without-rating">Старт без оценки</button>
+      </section>
+
+      <section id="phase-run" class="phase" hidden>
+        <h2 class="practice-title visually-hidden" id="run-title"></h2>
+        <div class="timer-display" id="timer-display">0:30</div>
+        <div class="breath-wrap">
+          <div class="breath-circle" id="breath-circle"></div>
+        </div>
+        <p class="hint" id="practice-hint"></p>
+        <p class="draft-midline" id="draft-midline" hidden>Черновик — это нормально. Продолжай без оценки.</p>
+
+        <div id="draft-controls" class="draft-controls" hidden>
+          <label class="toggle">
+            <input type="checkbox" id="brown-noise-toggle">
+            <span>Фоновый шум (Brown Noise)</span>
+          </label>
+          <div class="run-actions">
+            <button type="button" class="btn-secondary" id="btn-pause">Пауза</button>
+            <button type="button" class="btn-secondary" id="btn-stop-early">Стоп</button>
+          </div>
+        </div>
+
+        <button type="button" class="btn-stop" id="overlay-stop-run">Стоп</button>
+      </section>
+
+      <section id="phase-complete" class="phase" hidden>
+        <h2 class="complete-title" id="complete-title">Готово. Как сейчас?</h2>
+        <p class="stress-label">Напряжение сейчас:</p>
+        <div class="stress-row" id="stress-after-row">
+          <button type="button" class="stress-btn after" data-stress="1">1</button>
+          <button type="button" class="stress-btn after" data-stress="2">2</button>
+          <button type="button" class="stress-btn after" data-stress="3">3</button>
+          <button type="button" class="stress-btn after" data-stress="4">4</button>
+          <button type="button" class="stress-btn after" data-stress="5">5</button>
+        </div>
+        <label for="session-note">Что заметил?</label>
+        <input type="text" id="session-note" maxlength="200" placeholder="например: отпустило плечи и кисти рук" autocomplete="off">
+        <button type="button" class="btn-primary" id="btn-save-session" disabled>Сохранить</button>
+      </section>
+    </div>
+  </div>
+
+  <div id="modal-about" class="modal" hidden role="dialog" aria-labelledby="about-heading">
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-panel">
+      <button type="button" class="modal-close-x" id="modal-close" aria-label="Закрыть">✕</button>
+      <h2 id="about-heading" class="visually-hidden">О приложении</h2>
+
+      <div class="modal-tabs" role="tablist" aria-label="Разделы о приложении">
+        <button type="button" class="modal-tab modal-tab-active" role="tab" aria-selected="true" data-about-tab="method" id="tab-method">О методе</button>
+        <button type="button" class="modal-tab" role="tab" aria-selected="false" data-about-tab="map" id="tab-map">Соматическая карта</button>
+        <button type="button" class="modal-tab" role="tab" aria-selected="false" data-about-tab="research" id="tab-research">Исследования</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="about-panel about-panel-active" id="panel-method" role="tabpanel" aria-labelledby="tab-method">
+          <h3>Суть метода</h3>
+          <p>Инструмент самостоятельной соматической регуляции и коротких восстановительных микро-ретритов в течение рабочего дня. Работает через синхронизацию трех уровней: снятие мышечных зажимов (тело), выравнивание ритма дыхания (энергия) и переключение внимания из информационного шума в ясное присутствие (ум).</p>
+          <h3>Чего здесь нет</h3>
+          <p>Астрологии, прогнозов, &quot;волшебных таблеток&quot;. Это не психотерапия и не замена врачу.</p>
+          <h3>Анти-гуру подход</h3>
+          <p>Ты сам управляешь своим состоянием без внешних коучей. Никаких обещаний &quot;успешного успеха за 3 дня&quot;. Восстановление нервной системы не терпит спешки.</p>
+          <h3>Приватность</h3>
+          <p>Все данные хранятся исключительно на твоем устройстве (в localStorage). Никаких аккаунтов, серверов и скрытых трекеров.</p>
+          <h3>Медицинский дисклеймер</h3>
+          <p>Приложение помогает снизить моментное напряжение, но не лечит профессиональное выгорание. При клинических симптомах — панических атаках, бессоннице дольше двух недель, стойкой апатии — обязательно обратись к врачу.</p>
+          <p class="version">Версия: 0.1.3-mvp.</p>
+
+          <div class="tester-feedback">
+            <h3>Тестируете прототип? Помогите улучшить MVP</h3>
+            <p>Буду благодарен за честную обратную связь по 4 вопросам:</p>
+            <ol>
+              <li>Понятно ли с первого раза, куда нажимать и что делать по звуковым сигналам?</li>
+              <li>Какая из трех практик (30 сек / 90 сек / 15 мин) оказалась самой рабочей для вас?</li>
+              <li>Чего не хватило или что показалось лишним/раздражающим?</li>
+              <li>Удобно ли открывать приложение со смартфона?</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="about-panel" id="panel-map" role="tabpanel" aria-labelledby="tab-map" hidden>
+          <p class="map-intro">Как стресс блокирует тело за экраном:<br>
+          При офисной работе мозг воспринимает дедлайны, конфликты и сложные задачи как физическую угрозу, запуская древние реакции &quot;Бей&quot;, &quot;Беги&quot; или &quot;Замри&quot;. Поскольку тело зафиксировано на стуле, двигательный импульс блокируется, превращаясь в скрытый мышечный спазм (изометрический блок).<br>
+          Ниже приведена карта зон напряжения и 10-секундных микро-действий для их сброса прямо за рабочим столом.</p>
+
+          <div class="table-scroll">
+            <table class="soma-table">
+              <thead>
+                <tr>
+                  <th>Зона тела</th>
+                  <th>Соматический триггер</th>
+                  <th>Физиологический блок</th>
+                  <th>Действие на стуле (до 10 сек)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td data-label="Зона тела">Челюсть и корень языка</td>
+                  <td data-label="Соматический триггер">Сдерживание возражений на звонках, мысленный спор</td>
+                  <td data-label="Физиологический блок">Спазм жевательных мышц (masseter), язык прижат к нёбу</td>
+                  <td data-label="Действие на стуле (до 10 сек)">Разомкнуть зубы, «уронить» мягкий язык на дно полости рта, сделать выдох со звуком «ха-а» без голоса.</td>
+                </tr>
+                <tr>
+                  <td data-label="Зона тела">Глаза и подзатылок</td>
+                  <td data-label="Соматический триггер">Непрерывный тоннельный взор в монитор (конвергенция)</td>
+                  <td data-label="Физиологический блок">Спазм глазодвигательных мышц блокирует короткие разгибатели шеи</td>
+                  <td data-label="Действие на стуле (до 10 сек)">Отвести взгляд в окно на горизонт. Расфокусировать зрение панорамно, мягко поморгать 5 секунд.</td>
+                </tr>
+                <tr>
+                  <td data-label="Зона тела">Шея и трапеции («поза черепахи»)</td>
+                  <td data-label="Соматический триггер">Страх ошибки, давление сроков (рефлекс испуга)</td>
+                  <td data-label="Физиологический блок">Верхняя трапеция поднимает плечи к ушам для защиты шеи</td>
+                  <td data-label="Действие на стуле (до 10 сек)">На вдохе подтянуть плечи к ушам на 3 сек, затем на резком выдохе сбросить плечи вниз под собственным весом.</td>
+                </tr>
+                <tr>
+                  <td data-label="Зона тела">Кисти и пальцы</td>
+                  <td data-label="Соматический триггер">Подавленная злость («Бей»), судорожный контроль</td>
+                  <td data-label="Физиологический блок">Спазм сгибателей пальцев от мыши и клавиатуры</td>
+                  <td data-label="Действие на стуле (до 10 сек)">На вдохе сильно сжать кулаки на 3 сек, на длинном выдохе (&gt;6 сек) раскрыть ладони веером и положить на колени ладонями вверх.</td>
+                </tr>
+                <tr>
+                  <td data-label="Зона тела">Диафрагма («экранное апноэ»)</td>
+                  <td data-label="Соматический триггер">Чтение тревожных писем и сообщений</td>
+                  <td data-label="Физиологический блок">Бессознательная задержка дыхания, поверхностный ритм</td>
+                  <td data-label="Действие на стуле (до 10 сек)">Физиологический вздох: глубокий вдох через нос, короткий довдох, медленный расслабленный выдох через рот.</td>
+                </tr>
+                <tr>
+                  <td data-label="Зона тела">Поясница и Psoas</td>
+                  <td data-label="Соматический триггер">Паника перед объемом задач, защитное сжатие</td>
+                  <td data-label="Физиологический блок">Спазм подвздошно-поясничной мышцы сдавливает поясницу</td>
+                  <td data-label="Действие на стуле (до 10 сек)">Опустить локти на колени (или корпус на бедра), сделать 3 спокойных вдоха животом, медленно выпрямиться за 5 секунд.</td>
+                </tr>
+                <tr>
+                  <td data-label="Зона тела">Таз и крестец</td>
+                  <td data-label="Соматический триггер">Статический застой от многочасового сидения</td>
+                  <td data-label="Физиологический блок">Блок крестцово-подвздошных сочленений</td>
+                  <td data-label="Действие на стуле (до 10 сек)">Тазовые часы 12–6: сидя на стуле, мягко подкрутить копчик под себя (выдох), затем плавно подать таз вперед (вдох). Повторить 3 раза.</td>
+                </tr>
+                <tr>
+                  <td data-label="Зона тела">Стопы и икры</td>
+                  <td data-label="Соматический триггер">Цейтнот, невозможность убежать («Беги»)</td>
+                  <td data-label="Физиологический блок">Сжатие пальцев ног «когтями», спазм камбаловидных мышц</td>
+                  <td data-label="Действие на стуле (до 10 сек)">Поставить стопы плоско, с усилием вдавить пятки в пол на 4 сек (опора), затем полностью расслабить ноги.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="micro-block">
+            <h3>Микро-приемы циркуляции энергии</h3>
+            <h4>1. Очистительный выдох</h4>
+            <p>Сядь прямо, не касаясь спинки стула. Сделай медленный вдох через нос, направляя внимание и воздух в нижнюю часть живота. Сложи губы узкой трубочкой и сделай очень медленный, тонкий, непрерывный выдох, ощущая, как напряжение уходит из головы и плеч вниз. Сделай паузу 2 секунды перед следующим вдохом. Повтори 3 раза.</p>
+            <h4>2. Синхронное раскрытие каналов рук и плеч</h4>
+            <p>Положи предплечья на стол или колени. На вдохе медленно сожми пальцы в неплотные кулаки, одновременно вращая запястьями наружу и мягко отводя плечи назад (раскрывая грудную клетку). На выдохе мягко раскрой ладони, расслабь пальцы и опусти плечи вниз. Выполняй плавно в ритме дыхания 3–4 раза.</p>
+            <h4>3. Сброс ментального давления (выдох «ХА»)</h4>
+            <p>Положи ладони на бедра. Сделай полный вдох носом в живот и ребра. На выдохе произнеси шепотом или беззвучно протяжный звук &quot;ХА-А-А&quot;, одновременно опуская внимание из головы в центр груди и живот, отпуская внутренний диалог.</p>
+          </div>
+        </div>
+
+        <div class="about-panel" id="panel-research" role="tabpanel" aria-labelledby="tab-research" hidden>
+          <ol class="research-list">
+            <li>
+              <h3>Физиологический вздох и вегетативный баланс</h3>
+              <p>Balban et al., Cell Reports Medicine (Stanford University, 2023). Исследование доказало, что короткие структурированные дыхательные практики (в частности, двойной вдох с удлиненным выдохом) статистически достоверно снижают физиологическое возбуждение и ЧСС эффективнее пассивного наблюдения.</p>
+            </li>
+            <li>
+              <h3>Феномен экранного апноэ (Screen Apnea)</h3>
+              <p>Linda Stone (2008). Исследование показало, что до 80% офисных сотрудников при чтении экранов бессознательно задерживают дыхание или дышат неритмично, вводя организм в состояние скрытой гипоксии и хронического стресса.</p>
+            </li>
+            <li>
+              <h3>Поливагальная теория и моторные паттерны</h3>
+              <p>Stephen Porges (2011). Объясняет физиологию реакций &quot;Бей&quot;, &quot;Беги&quot;, &quot;Замри&quot; и роль расслабления жевательных мышц, мимики и взгляда в переключении вегетативной нервной системы в режим восстановления.</p>
+            </li>
+            <li>
+              <h3>Прогрессивная мышечная релаксация</h3>
+              <p>Edmund Jacobson (1938). Доказал, что соматическое напряжение не может существовать без сокращения скелетных мышц. Кратковременное изометрическое сжатие с последующим расслаблением запускает глубокое рефлекторное торможение моторной коры.</p>
+            </li>
+            <li>
+              <h3>Клиническая соматика и рефлекс испуга</h3>
+              <p>Thomas Hanna (1988). Исследование бессознательных мышечных реакций на хронический стресс (&quot;Red Light Reflex&quot;), приводящих к спазму челюсти, укорочению трапеций и хроническому блоку подвздошно-поясничной мышцы.</p>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
