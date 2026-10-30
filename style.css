@@ -591,6 +591,13 @@ label[for="session-note"] {
   padding: 0 8px;
 }
 
+.hint.hint-emphasis {
+  font-size: 1.22rem;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.55;
+}
+
 .draft-midline {
   text-align: center;
   color: var(--accent);

@@ -10,7 +10,8 @@
       "Сигналы: высокий тон — начало вдоха; низкий тон — начало длинного выдоха; вибрация в паузе — сигнал разомкнуть челюсть и расслабить кисти рук; двойной тон в конце — завершение (2 полных цикла)."
     ],
     pause90: [
-      "Что делать: сразу после нажатия на кнопку оценки отведи взгляд от экрана в окно (вдаль) или прикрой глаза. Не нужно смотреть на экран во время таймера.",
+      "Что делать: сразу после нажатия на кнопку оценки отведи взгляд от экрана в окно (вдаль) или прикрой глаза. Не нужно смотреть на экран во время таймера. Можно закрыть глаза или смотреть вдаль — ориентируйся на звуки.",
+      "Звучат только три сигнала: старт (мягкий тон), колокольчик на 45 секундах и двойной тон в конце на 90 секундах. Промежуточных звуков нет.",
       "Сигнал 45 секунд (звук мягкого колокольчика): услышав колокольчик в середине практики, не фокусируй взгляд на экране. Сделай спокойный выдох и безоценочно проверь тело на зажимы (челюсть, плечи, кисти, поясница, стопы). Если ничего не заметил — ничего не выдумывай и спокойно дыши дальше.",
       "Сигнал 90 секунд (двойной тон): практика окончена, возвращайся к экрану."
     ],
@@ -43,17 +44,10 @@
       subtitle: "90 секунд. Панорамный взгляд в пространство и присутствие.",
       durationSec: 90,
       phases: [
-        { start: 0, end: 15, text: "Отведи взгляд от экрана. Посмотри в окно, в небо или на дальнюю точку.", sound: "start", anim: "static" },
+        { start: 0, end: 15, text: "Отведи взгляд от экрана. Посмотри в окно, в небо или на дальнюю точку.", anim: "static" },
         { start: 15, end: 30, text: "Смотри мягко, расфокусированно. Не всматривайся в детали.", anim: "static" },
         { start: 30, end: 45, text: "Оставь взгляд мягким или прикрой глаза.", anim: "static" },
-        {
-          start: 45,
-          end: 60,
-          text: "Пройдись вниманием по телу: челюсть, шея, плечи, кисти рук, поясница, икры ног.",
-          sound: "bell",
-          vibrate: true,
-          anim: "static"
-        },
+        { start: 45, end: 60, text: "Пройдись вниманием по телу: челюсть, шея, плечи, кисти рук, поясница, икры ног.", anim: "static" },
         { start: 60, end: 75, text: "Просто замечай любое ощущение напряжения или шума как оно есть.", anim: "static" },
         { start: 75, end: 90, text: "Не борись с ощущением и не оценивай его. Спокойно дыши рядом с ним.", anim: "static" }
       ]
@@ -90,6 +84,8 @@
   let stressAfter = null;
   let completedNaturally = false;
   let wakeLock = null;
+  let pendingCues = [];
+  let cueTimers = [];
 
   const el = {
     datetime: document.getElementById("datetime"),
@@ -146,85 +142,200 @@
   };
 
   function initAudio() {
-    if (!audioCtx) {
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      if (Ctx) audioCtx = new Ctx();
-    }
-    if (audioCtx && audioCtx.state === "suspended") {
-      audioCtx.resume();
+    try {
+      if (!audioCtx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        audioCtx = new Ctx();
+      }
+      if (audioCtx.state === "suspended") {
+        const resumed = audioCtx.resume();
+        if (resumed && typeof resumed.catch === "function") resumed.catch(() => {});
+      }
+    } catch {
+      audioCtx = null;
     }
   }
 
   function ensureAudioRunning() {
-    if (audioCtx && audioCtx.state === "suspended") {
-      audioCtx.resume();
+    try {
+      if (audioCtx && audioCtx.state === "suspended") {
+        const resumed = audioCtx.resume();
+        if (resumed && typeof resumed.catch === "function") resumed.catch(() => {});
+      }
+    } catch {
+      /* keep timer running even if audio is unavailable */
+    }
+  }
+
+  function unlockAudio() {
+    initAudio();
+    if (!audioCtx) return;
+    try {
+      const buffer = audioCtx.createBuffer(1, 1, 22050);
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(audioCtx.destination);
+      src.start(0);
+    } catch {
+      /* silent unlock is best-effort on mobile */
     }
   }
 
   function playTone(freq, duration, peakGain, delaySec) {
-    if (!audioCtx) return;
-    ensureAudioRunning();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = "sine";
-    osc.frequency.value = freq;
-    const t = audioCtx.currentTime + (delaySec || 0);
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(peakGain, t + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start(t);
-    osc.stop(t + duration + 0.05);
-  }
-
-  function playDoubleTone() {
-    if (!audioCtx) return;
-    ensureAudioRunning();
-    playTone(440, 0.16, 0.14, 0);
-    playTone(587.33, 0.28, 0.14, 0.16 + 0.18);
-  }
-
-  function playBell() {
-    if (!audioCtx) return;
-    ensureAudioRunning();
-    const duration = 0.6;
-    const peakGain = 0.14;
-    const t = audioCtx.currentTime;
-    [
-      { freq: 659.25, gain: peakGain },
-      { freq: 1318.5, gain: peakGain * 0.35 }
-    ].forEach(({ freq, gain: peak }) => {
+    try {
+      if (!audioCtx) return;
+      ensureAudioRunning();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = "sine";
       osc.frequency.value = freq;
+      const t = audioCtx.currentTime + (delaySec || 0);
       gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(peak, t + 0.03);
+      gain.gain.exponentialRampToValueAtTime(peakGain, t + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start(t);
       osc.stop(t + duration + 0.05);
-    });
+    } catch {
+      /* skip sound, do not break the timer */
+    }
+  }
+
+  function playDoubleTone() {
+    try {
+      if (!audioCtx) return;
+      ensureAudioRunning();
+      playTone(440, 0.16, 0.14, 0);
+      playTone(587.33, 0.28, 0.14, 0.16 + 0.18);
+    } catch {
+      /* skip sound, do not break the timer */
+    }
+  }
+
+  function playBell() {
+    try {
+      if (!audioCtx) return;
+      ensureAudioRunning();
+      const t = audioCtx.currentTime;
+      const duration = 0.85;
+      [
+        { freq: 659.25, peak: 0.18 },
+        { freq: 1318.5, peak: 0.07 },
+        { freq: 1977.75, peak: 0.028 }
+      ].forEach(({ freq, peak }) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(peak, t + 0.012);
+        gain.gain.exponentialRampToValueAtTime(peak * 0.32, t + 0.14);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + duration + 0.05);
+      });
+    } catch {
+      /* skip sound, do not break the timer */
+    }
   }
 
   function playSoundKind(kind) {
-    if (kind === "none") return;
-    ensureAudioRunning();
-    if (kind === "soft" || kind === "high") playTone(528, 0.35, 0.12);
-    else if (kind === "start") playTone(440, 0.3, 0.12);
-    else if (kind === "low") playTone(264, 0.45, 0.14);
-    else if (kind === "bell") playBell();
-    else if (kind === "final") playDoubleTone();
+    if (!kind || kind === "none") return;
+    try {
+      ensureAudioRunning();
+      if (kind === "soft" || kind === "high") playTone(528, 0.35, 0.12);
+      else if (kind === "start") playTone(440, 0.3, 0.12);
+      else if (kind === "low") playTone(264, 0.45, 0.14);
+      else if (kind === "bell") playBell();
+      else if (kind === "final") playDoubleTone();
+    } catch {
+      /* skip sound, do not break the timer */
+    }
   }
 
   function vibrateShort() {
-    if (navigator.vibrate) navigator.vibrate(120);
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+        navigator.vibrate(120);
+      }
+    } catch {
+      /* Vibration API is optional */
+    }
   }
 
   function vibrateFinal() {
-    if (navigator.vibrate) navigator.vibrate([100, 60, 100]);
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+        navigator.vibrate([100, 60, 100]);
+      }
+    } catch {
+      /* Vibration API is optional */
+    }
+  }
+
+  function buildSoundCues(practiceId) {
+    if (practiceId === "pause90") {
+      return [
+        { atSec: 0, kind: "start" },
+        { atSec: 45, kind: "bell", vibrate: "short" },
+        { atSec: 90, kind: "final", vibrate: "final" }
+      ];
+    }
+    if (practiceId === "reset30") {
+      return [
+        { atSec: 0, kind: "soft" },
+        { atSec: 6, kind: "low" },
+        { atSec: 14, vibrate: "short" },
+        { atSec: 16, kind: "soft" },
+        { atSec: 22, kind: "low" },
+        { atSec: 29.2, kind: "final", vibrate: "final" }
+      ];
+    }
+    return [];
+  }
+
+  function clearCueTimers() {
+    cueTimers.forEach((id) => clearTimeout(id));
+    cueTimers = [];
+  }
+
+  function fireCue(cue) {
+    if (!cue || cue._fired) return;
+    cue._fired = true;
+    if (cue.kind) playSoundKind(cue.kind);
+    if (cue.vibrate === "short") vibrateShort();
+    if (cue.vibrate === "final") vibrateFinal();
+  }
+
+  function flushDueCues() {
+    const elapsed = elapsedSec();
+    pendingCues.forEach((cue) => {
+      if (cue._fired) return;
+      if (Math.abs(cue.atSec - elapsed) <= 0.35) fireCue(cue);
+    });
+  }
+
+  function scheduleCuesFromNow() {
+    clearCueTimers();
+    const elapsed = elapsedSec();
+    pendingCues.forEach((cue) => {
+      if (cue._fired) return;
+      const delayMs = (cue.atSec - elapsed) * 1000;
+      if (delayMs <= 30) {
+        if (delayMs >= -1200) fireCue(cue);
+        else cue._fired = true;
+        return;
+      }
+      const id = setTimeout(() => {
+        if (isPaused) return;
+        fireCue(cue);
+      }, delayMs);
+      cueTimers.push(id);
+    });
   }
 
   function ensureBrownNoise() {
@@ -461,6 +572,8 @@
 
   function closeOverlayCleanup() {
     stopTick();
+    clearCueTimers();
+    pendingCues = [];
     releaseWakeLock();
     setBrownNoise(false);
     if (el.brownNoiseToggle) el.brownNoiseToggle.checked = false;
@@ -510,15 +623,17 @@
           if (ph.anim) applyBreathAnim(ph.anim);
           else applyBreathAnim("static");
         }
-        const soundKey = `${i}-sound`;
-        if (ph.sound && !playedSounds.has(soundKey)) {
-          playedSounds.add(soundKey);
-          playSoundKind(ph.sound);
-        }
-        const vibKey = `${i}-vib`;
-        if (ph.vibrate && !playedSounds.has(vibKey)) {
-          playedSounds.add(vibKey);
-          vibrateShort();
+        if (practice.id !== "pause90" && practice.id !== "reset30") {
+          const soundKey = `${i}-sound`;
+          if (ph.sound && !playedSounds.has(soundKey)) {
+            playedSounds.add(soundKey);
+            playSoundKind(ph.sound);
+          }
+          const vibKey = `${i}-vib`;
+          if (ph.vibrate && !playedSounds.has(vibKey)) {
+            playedSounds.add(vibKey);
+            vibrateShort();
+          }
         }
         return;
       }
@@ -531,25 +646,14 @@
         el.practiceHint.textContent = "Возвращайся. Следующий шаг — маленький.";
         applyBreathAnim("static");
       }
-      if (!playedSounds.has("final90")) {
-        playedSounds.add("final90");
-        playSoundKind("final");
-        vibrateFinal();
-      }
-    }
-
-    if (practice.id === "reset30" && t >= 29.2) {
-      const finalKey = "reset-final";
-      if (!playedSounds.has(finalKey)) {
-        playedSounds.add(finalKey);
-        playSoundKind("final");
-        vibrateFinal();
-      }
     }
   }
 
   function showComplete() {
     stopTick();
+    if (completedNaturally) flushDueCues();
+    clearCueTimers();
+    pendingCues = [];
     releaseWakeLock();
     setBrownNoise(false);
     el.phaseRun.hidden = true;
@@ -586,6 +690,7 @@
     el.breathCircle.hidden = currentPracticeId === "draft15";
     el.practiceHint.textContent =
       currentPracticeId === "draft15" ? "Черновик без перфекционизма. Просто набросай." : "";
+    el.practiceHint.classList.toggle("hint-emphasis", currentPracticeId === "pause90");
 
     runStartTs = Date.now();
     pausedAccum = 0;
@@ -595,6 +700,10 @@
     el.btnPause.textContent = "Пауза";
 
     stopTick();
+    clearCueTimers();
+    pendingCues = buildSoundCues(currentPracticeId);
+    unlockAudio();
+    scheduleCuesFromNow();
     requestWakeLock();
     tickTimer = setInterval(tick, 100);
     tick();
@@ -622,13 +731,13 @@
   }
 
   function beginWithStress(value) {
-    initAudio();
+    unlockAudio();
     stressBefore = value;
     startRun();
   }
 
   function beginWithoutRating() {
-    initAudio();
+    unlockAudio();
     stressBefore = null;
     startRun();
   }
@@ -648,11 +757,13 @@
       isPaused = false;
       el.btnPause.textContent = "Пауза";
       stopTick();
+      scheduleCuesFromNow();
       tickTimer = setInterval(tick, 100);
     } else {
       isPaused = true;
       pauseStarted = Date.now();
       el.btnPause.textContent = "Продолжить";
+      clearCueTimers();
     }
   }
 
@@ -750,6 +861,8 @@
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible" && tickTimer && !el.phaseRun.hidden) {
       requestWakeLock();
+      ensureAudioRunning();
+      if (!isPaused) scheduleCuesFromNow();
     }
   });
 
@@ -760,19 +873,20 @@
     const reload = () => {
       setTimeout(() => window.location.reload(), 600);
     };
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
-      .then(() => {
-        if ("serviceWorker" in navigator) {
-          return navigator.serviceWorker.getRegistration("./");
-        }
-        return null;
-      })
-      .then((reg) => {
-        if (reg) return reg.update();
-      })
-      .finally(reload);
+    const clearCaches =
+      "caches" in window
+        ? caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+        : Promise.resolve();
+    const updateWorker = ("serviceWorker" in navigator)
+      ? navigator.serviceWorker.getRegistrations().then((regs) =>
+          Promise.all(
+            regs.map((reg) =>
+              Promise.resolve(reg.update ? reg.update() : null).then(() => reg.unregister())
+            )
+          )
+        )
+      : Promise.resolve();
+    Promise.all([clearCaches, updateWorker]).finally(reload);
   }
 
   if (el.btnCheckUpdate) {
