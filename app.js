@@ -6,7 +6,7 @@
 
   const PRACTICE_HOWTO = {
     reset30: [
-      "Что делать: сядь удобно, стопы на полу. Следуй за кругом: сделай глубокий вдох носом (4 с), короткий довдох до верха легких (2 с) и долгий мягкий выдох ртом (8 с).",
+      "Что делать: сядь удобно, стопы на полу. За 30 секунд мы сделаем 2 полных дыхательных цикла. Следуй за кругом: глубокий вдох носом (4 с), короткий довдох до верха легких (2 с) и долгий мягкий выдох ртом (8 с).",
       "Сигналы: высокий тон — начало вдоха; низкий тон — начало длинного выдоха; вибрация в паузе — сигнал разомкнуть челюсть и расслабить кисти рук; двойной тон в конце — завершение (2 полных цикла)."
     ],
     pause90: [
@@ -34,7 +34,7 @@
         { start: 14, end: 16, text: "Разомкни челюсть. Расслабь кисти рук", anim: "static", vibrate: true },
         { start: 16, end: 20, text: "Вдох через нос", anim: "expand", sound: "soft" },
         { start: 20, end: 22, text: "Короткий довдох", anim: "expand-more", sound: "none" },
-        { start: 22, end: 30, text: "Выдох. Опусти плечи. Отпусти поясницу и почувствуй стопы", anim: "shrink", sound: "final" }
+        { start: 22, end: 30, text: "Выдох. Опусти плечи. Отпусти поясницу и почувствуй стопы", anim: "shrink", sound: "low" }
       ]
     },
     pause90: {
@@ -43,13 +43,19 @@
       subtitle: "90 секунд. Панорамный взгляд в пространство и присутствие.",
       durationSec: 90,
       phases: [
-        { start: 0, end: 15, text: "Отведи взгляд от экрана. Посмотри в окно, в небо или на дальнюю точку.", sound: "start" },
+        { start: 0, end: 15, text: "Отведи взгляд от экрана. Посмотри в окно, в небо или на дальнюю точку.", sound: "start", anim: "static" },
         { start: 15, end: 30, text: "Смотри мягко, расфокусированно. Не всматривайся в детали.", anim: "static" },
-        { start: 30, end: 45, text: "Оставь взгляд мягким или прикрой глаза.", sound: "soft", vibrate: true, anim: "static" },
-        { start: 45, end: 60, text: "Пройдись вниманием по телу: челюсть, шея, плечи, кисти рук, поясница, икры ног.", anim: "static" },
-        { start: 60, end: 75, text: "Просто замечай любое ощущение напряжения или шума как оно есть.", sound: "soft", vibrate: true, anim: "static" },
-        { start: 75, end: 90, text: "Не борись с ощущением и не оценивай его. Спокойно дыши рядом с ним.", anim: "static" },
-        { start: 90, end: 90, text: "Возвращайся. Следующий шаг — маленький.", sound: "final", vibrate: true, anim: "static" }
+        { start: 30, end: 45, text: "Оставь взгляд мягким или прикрой глаза.", anim: "static" },
+        {
+          start: 45,
+          end: 60,
+          text: "Пройдись вниманием по телу: челюсть, шея, плечи, кисти рук, поясница, икры ног.",
+          sound: "bell",
+          vibrate: true,
+          anim: "static"
+        },
+        { start: 60, end: 75, text: "Просто замечай любое ощущение напряжения или шума как оно есть.", anim: "static" },
+        { start: 75, end: 90, text: "Не борись с ощущением и не оценивай его. Спокойно дыши рядом с ним.", anim: "static" }
       ]
     },
     draft15: {
@@ -129,6 +135,8 @@
     modalBackdrop: document.getElementById("modal-backdrop"),
     modalClose: document.getElementById("modal-close"),
     btnAbout: document.getElementById("btn-about"),
+    btnCheckUpdate: document.getElementById("btn-check-update"),
+    updateStatus: document.getElementById("update-status"),
     aboutTabs: document.querySelectorAll(".modal-tab"),
     aboutPanels: {
       method: document.getElementById("panel-method"),
@@ -147,13 +155,20 @@
     }
   }
 
-  function playTone(freq, duration, peakGain) {
+  function ensureAudioRunning() {
+    if (audioCtx && audioCtx.state === "suspended") {
+      audioCtx.resume();
+    }
+  }
+
+  function playTone(freq, duration, peakGain, delaySec) {
     if (!audioCtx) return;
+    ensureAudioRunning();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = "sine";
     osc.frequency.value = freq;
-    const t = audioCtx.currentTime;
+    const t = audioCtx.currentTime + (delaySec || 0);
     gain.gain.setValueAtTime(0.0001, t);
     gain.gain.exponentialRampToValueAtTime(peakGain, t + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
@@ -163,11 +178,45 @@
     osc.stop(t + duration + 0.05);
   }
 
+  function playDoubleTone() {
+    if (!audioCtx) return;
+    ensureAudioRunning();
+    playTone(440, 0.16, 0.14, 0);
+    playTone(587.33, 0.28, 0.14, 0.16 + 0.18);
+  }
+
+  function playBell() {
+    if (!audioCtx) return;
+    ensureAudioRunning();
+    const duration = 0.6;
+    const peakGain = 0.14;
+    const t = audioCtx.currentTime;
+    [
+      { freq: 659.25, gain: peakGain },
+      { freq: 1318.5, gain: peakGain * 0.35 }
+    ].forEach(({ freq, gain: peak }) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(peak, t + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + duration + 0.05);
+    });
+  }
+
   function playSoundKind(kind) {
     if (kind === "none") return;
-    if (kind === "soft" || kind === "start") playTone(432, 0.35, 0.08);
-    else if (kind === "low") playTone(288, 0.45, 0.07);
-    else if (kind === "final") playTone(432, 0.5, 0.09);
+    ensureAudioRunning();
+    if (kind === "soft" || kind === "high") playTone(528, 0.35, 0.12);
+    else if (kind === "start") playTone(440, 0.3, 0.12);
+    else if (kind === "low") playTone(264, 0.45, 0.14);
+    else if (kind === "bell") playBell();
+    else if (kind === "final") playDoubleTone();
   }
 
   function vibrateShort() {
@@ -490,9 +539,10 @@
     }
 
     if (practice.id === "reset30" && t >= 29.2) {
-      const vibKey = "reset-final-vib";
-      if (!playedSounds.has(vibKey)) {
-        playedSounds.add(vibKey);
+      const finalKey = "reset-final";
+      if (!playedSounds.has(finalKey)) {
+        playedSounds.add(finalKey);
+        playSoundKind("final");
         vibrateFinal();
       }
     }
@@ -702,6 +752,32 @@
       requestWakeLock();
     }
   });
+
+  function checkForUpdates() {
+    if (el.updateStatus) {
+      el.updateStatus.textContent = "Проверка и обновление кэша...";
+    }
+    const reload = () => {
+      setTimeout(() => window.location.reload(), 600);
+    };
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+      .then(() => {
+        if ("serviceWorker" in navigator) {
+          return navigator.serviceWorker.getRegistration("./");
+        }
+        return null;
+      })
+      .then((reg) => {
+        if (reg) return reg.update();
+      })
+      .finally(reload);
+  }
+
+  if (el.btnCheckUpdate) {
+    el.btnCheckUpdate.addEventListener("click", checkForUpdates);
+  }
 
   el.btnAbout.addEventListener("click", openAboutModal);
   el.modalClose.addEventListener("click", closeAboutModal);

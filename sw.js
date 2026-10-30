@@ -1,4 +1,4 @@
-const CACHE_NAME = "somaenergy-mvp-v1.3.1";
+const CACHE_NAME = "somaenergy-v1.4";
 const ASSETS = [
   "./",
   "./index.html",
